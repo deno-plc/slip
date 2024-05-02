@@ -1,12 +1,11 @@
-# Deno-PLC / SLIP
-
-[![JSR Scope](https://jsr.io/badges/@deno-plc)](https://jsr.io/@deno-plc)
+# [Deno-PLC](https://github.com/deno-plc) / [SLIP](https://jsr.io/@deno-plc/slip)
 
 TypeScript implementation of
 [SLIP (Serial Line Internet Protocol)](https://en.wikipedia.org/wiki/Serial_Line_Internet_Protocol)
 
 ## Installation
 
+Use JSR:
 [![JSR](https://jsr.io/badges/@deno-plc/slip)](https://jsr.io/@deno-plc/slip)
 
 ## Usage

@@ -28,6 +28,9 @@ export enum SLIP {
     ESC_ESC = 221,
 }
 
+/**
+ * SLIP encoder
+ */
 export function encodeSLIP(chunk: Uint8Array): Uint8Array {
     if (chunk.indexOf(SLIP.END) === -1 && chunk.indexOf(SLIP.ESC) === -1) {
         // fast forward
@@ -67,8 +70,6 @@ export function encodeSLIP(chunk: Uint8Array): Uint8Array {
  * SLIP decoder (needs to be instantiated to handle fragmented packets)
  */
 export class SLIPDecoder {
-    constructor() {
-    }
     /**
      * Default value should be fine for most use cases.
      * In case you have alternating big and small packets you
@@ -80,6 +81,11 @@ export class SLIPDecoder {
     #carry = new Uint8Array(0);
     #carrySize = 0;
     #esc = false;
+
+    /**
+     * Call this for every chunk of data you receive
+     * @returns Generator of the packets that were encoded within the chunk and previously received incomplete ones
+     */
     public *decode(chunk: Uint8Array): Generator<Uint8Array> {
         // maximum amount of data that might be be cached
         // = the amount that is carried + the new data
