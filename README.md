@@ -49,6 +49,46 @@ import { SLIPEncoderStream, SLIPDecoderStream } from "@deno-plc/slip";
 /* ... */.pipeThrough(new SLIPDecoderStream()).pipeTo(/* ... */);
 ```
 
+### Encoder options
+
+```ts
+const options = {
+    // When enabled an 0xc0 (SLIP.END) is inserted at the frame start.
+    terminateStart: true,
+};
+encodeSLIP(myData, options);
+// or
+new SLIPEncoderStream(options);
+```
+
+### Decoder options
+
+```ts
+const decoder = new SLIPDecoder();
+// if you are using the stream decoder, use `SLIPDecoderStream.decoder`
+
+// Default value should be fine for most use cases.
+// In case you have alternating big and small packets you
+// might want to set this to the size of the biggest packets
+// in order to prevent unnecessary memory allocations
+decoder.max_carry_oversize = 200;
+
+// When enabled (default), empty packets are ignored
+decoder.ignore_empty_packets = false;
+```
+
+### `0xC0` frame start?
+
+If you are using RS232 or a similar transport medium, you should send an empty
+packet (only contains the 0xC0 termination code) before doing anything useful in
+order to terminate any previously disrupted transmissions. On such raw transport
+layers you might also wish to add some kind of validation (for example a CRC8
+checksum). Although supported (`SLIPEncoderOptions.terminateStart`), adding a
+`0xC0` to the beginning of every frame is not required. If you do so (or the
+software at the other end) make sure to not set the
+`SLIPDecoder.ignore_empty_packets` to `false` because additional termination
+codes effectively emit empty frames.
+
 ## License (LGPL-2.1-or-later)
 
 (C) 2023 - 2024 Hans Schallmoser

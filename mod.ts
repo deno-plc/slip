@@ -21,18 +21,25 @@
  * USA or see <https://www.gnu.org/licenses/>.
  */
 
-import { encodeSLIP, SLIPDecoder } from "./src/slip.core.ts";
+import {
+    encodeSLIP,
+    SLIPDecoder,
+    type SLIPEncoderOptions,
+} from "./src/slip.core.ts";
 export { encodeSLIP, SLIPDecoder } from "./src/slip.core.ts";
 
 /**
  * SLIP decoder as a TransformStream
  */
 export class SLIPDecoderStream extends TransformStream<Uint8Array, Uint8Array> {
-    #decoder = new SLIPDecoder();
+    /**
+     * set options on the {@link SLIPDecoder}
+     */
+    public readonly decoder: SLIPDecoder = new SLIPDecoder();
     constructor() {
         super({
             transform: (chunk, controller) => {
-                for (const packet of this.#decoder.decode(chunk)) {
+                for (const packet of this.decoder.decode(chunk)) {
                     controller.enqueue(packet);
                 }
             },
@@ -44,10 +51,10 @@ export class SLIPDecoderStream extends TransformStream<Uint8Array, Uint8Array> {
  * SLIP encoder as a TransformStream
  */
 export class SLIPEncoderStream extends TransformStream<Uint8Array, Uint8Array> {
-    constructor() {
+    constructor(options: SLIPEncoderOptions = {}) {
         super({
             transform: (chunk, controller) => {
-                controller.enqueue(encodeSLIP(chunk));
+                controller.enqueue(encodeSLIP(chunk, options));
             },
         });
     }

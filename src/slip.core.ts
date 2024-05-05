@@ -21,6 +21,9 @@
  * USA or see <https://www.gnu.org/licenses/>.
  */
 
+/**
+ * Definition of the escape codes
+ */
 export enum SLIP {
     END = 192,
     ESC = 219,
@@ -28,20 +31,51 @@ export enum SLIP {
     ESC_ESC = 221,
 }
 
+export interface SLIPEncoderOptions {
+    /**
+     * When enabled an 0xc0 (SLIP.END) is inserted at the frame start.
+     * (default false)
+     */
+    terminateStart?: boolean;
+}
+
 /**
  * SLIP encoder
  */
-export function encodeSLIP(chunk: Uint8Array): Uint8Array {
+export function encodeSLIP(
+    chunk: Uint8Array,
+    options: SLIPEncoderOptions = {},
+): Uint8Array {
+    if (chunk.length === 0) {
+        // ultra fast forward
+        return new Uint8Array([SLIP.END]);
+    }
+    const terminateStart = options.terminateStart ?? false;
     if (chunk.indexOf(SLIP.END) === -1 && chunk.indexOf(SLIP.ESC) === -1) {
         // fast forward
-        const res = new Uint8Array(chunk.length + 1);
-        res.set(chunk, 0);
-        res[chunk.length] = SLIP.END;
-        return res;
+        if (terminateStart) {
+            const res = new Uint8Array(chunk.length + 2);
+            res[0] = SLIP.END;
+            res.set(chunk, 1);
+            res[chunk.length + 1] = SLIP.END;
+            return res;
+        } else {
+            const res = new Uint8Array(chunk.length + 1);
+            res.set(chunk, 0);
+            res[chunk.length] = SLIP.END;
+            return res;
+        }
     } else {
         // this relatively simple approach has been shown to be 1.5 to 10 times faster than slicing buffers (depending on the data)
-        const result = new Uint8Array(chunk.length * 2 + 1);
+        const result = new Uint8Array(
+            chunk.length * 2 + (terminateStart ? 2 : 1),
+        );
         let result_offset = 0;
+
+        if (terminateStart) {
+            result[result_offset] = SLIP.END;
+            result_offset++;
+        }
 
         for (let i = 0; i < chunk.length; i++) {
             const byte = chunk[i];
@@ -77,6 +111,11 @@ export class SLIPDecoder {
      * in order to prevent unnecessary memory allocations
      */
     public max_carry_oversize = 100;
+
+    /**
+     * When enabled (default), empty packets are ignored
+     */
+    public ignore_empty_packets = true;
 
     #carry = new Uint8Array(0);
     #carrySize = 0;
@@ -114,7 +153,9 @@ export class SLIPDecoder {
             } else if (char === SLIP.ESC) {
                 this.#esc = true;
             } else if (char === SLIP.END) {
-                yield b.slice(0, bi);
+                if (!this.ignore_empty_packets || bi !== 0) {
+                    yield b.slice(0, bi);
+                }
                 bi = 0;
                 this.#esc = false;
             } else {

@@ -24,8 +24,12 @@
 import { assertEquals } from "@std/assert";
 import { encodeSLIP, SLIP, SLIPDecoder } from "./slip.core.ts";
 
-function assertEncode(input: Uint8Array, encoded: Uint8Array) {
-    assertEquals(encodeSLIP(input), encoded);
+function assertEncode(
+    input: Uint8Array,
+    encoded: Uint8Array,
+    terminateStart = false,
+) {
+    assertEquals(encodeSLIP(input, { terminateStart }), encoded);
 }
 
 Deno.test("encodeSLIP", () => {
@@ -35,10 +39,25 @@ Deno.test("encodeSLIP", () => {
         new Uint8Array([1, 2, 3, SLIP.END]),
     );
 
+    // basic packet with terminateStart
+    assertEncode(
+        new Uint8Array([1, 2, 3]),
+        new Uint8Array([SLIP.END, 1, 2, 3, SLIP.END]),
+        true,
+    );
+
     // empty packet
     assertEncode(
         new Uint8Array([]),
         new Uint8Array([SLIP.END]),
+    );
+
+    // empty packet with terminateStart
+    // same as `empty packet` as we don't need two END
+    assertEncode(
+        new Uint8Array([]),
+        new Uint8Array([SLIP.END]),
+        true,
     );
 
     // escape END
@@ -172,10 +191,19 @@ Deno.test("encodeSLIP", () => {
     );
 });
 
-function assertDecode(encoded: Uint8Array, decoded: Uint8Array) {
-    assertEquals([...new SLIPDecoder().decode(encoded)], [
-        decoded,
-    ]);
+function assertDecode(
+    encoded: Uint8Array,
+    decoded: Uint8Array | null,
+    ignoreEmptyPackets = false,
+) {
+    const decoder = new SLIPDecoder();
+    decoder.ignore_empty_packets = ignoreEmptyPackets;
+    assertEquals(
+        [...decoder.decode(encoded)],
+        [
+            decoded,
+        ].filter(($) => !!$),
+    );
 }
 
 Deno.test("decodeSLIP", () => {
@@ -189,6 +217,13 @@ Deno.test("decodeSLIP", () => {
     assertDecode(
         new Uint8Array([SLIP.END]),
         new Uint8Array([]),
+    );
+
+    // empty packet ignore
+    assertDecode(
+        new Uint8Array([SLIP.END]),
+        null,
+        true,
     );
 
     // unescape END
